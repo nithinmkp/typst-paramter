@@ -1,0 +1,13 @@
+---
+title: "Penguins"
+format: 
+  typst:
+    template-partials:  
+      - typst-show.typ
+      - typst-template.typ
+params:
+  species: Adelie
+    
+---
+
+
