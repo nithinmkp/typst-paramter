@@ -7,28 +7,35 @@ format:
       - typst-show.typ
       - typst-template.typ
 params:
-  species: Chinstrap
+  species: Adelie
 echo: false
 message: false
 warning: false
     
 ---
 
-```{=typst}
-#v(-1em)
-*#text(size: 1.6em)[`r params$species`]*  
+```{r}
+#| include: false
+# library(glue)
+# library(tidyverse)
+# library(palmerpenguins)
+# library(kableExtra)
+# library(gghighlight)
+# library(quarto)
+pacman::p_load(glue,dplyr,ggplot2,palmerpenguins,gghighlight,showtext,quarto,purrr,tidyr)
 
+```
+```{r}
+#| output: asis
+#| echo: false
+write_yaml_metadata_block(params = list(species = params$species))
 
+# cat(sprintf("\n\n---\nspecies: %s\n---\n\n", params[["species"]]))
 ```
 
 ```{r}
 #| include: false
 # Define species color schemes
-library(glue)
-library(tidyverse)
-library(palmerpenguins)
-library(kableExtra)
-library(gghighlight)
 
 species_colors <- data.frame(
   species = c("Adelie", "Chinstrap", "Gentoo"),
@@ -37,17 +44,43 @@ species_colors <- data.frame(
   stringsAsFactors = FALSE
 )
 
-# Get colors for current species
-current_colors <- species_colors[species_colors$species == params$species, ]
-sidebar_color <- current_colors$primary
-header_color <- current_colors$secondary
 color <- case_when(params$species == "Adelie" ~ "#FF6600",
                    params$species == "Gentoo" ~ "#047075",
                    params$species == "Chinstrap" ~ "#C25BCC")
+
+current_colors <- species_colors[species_colors$species == params$species, ]
+sidebar_color <- current_colors$primary
+header_color <- current_colors$secondary
+
 ```
 
 
-The `r params$species` penguins can be found on the island(s) of: `r glue_collapse(penguins |> filter(species == params$species) |> count(island) |> pluck(1), sep = ", ", last = ", and ")`. 
+```{=typst}
+
+#set page(background: place(
+        top,
+        rect(
+            width: 2cm,
+            height: 100%,
+            fill: rgb(`r shQuote(sidebar_color)`)
+        )
+    ),
+    )
+#h(-1cm)
+    #box(
+        fill: rgb(`r shQuote(header_color)`),
+        width: 0.4fr,
+        inset: 10pt,
+    )[
+        #text(size: 2.5em, fill: white)[*{{< meta title >}}*]
+    ]
+
+*#text(size: 1.2em)[Species: `{r} params[["species"]]`]* 
+ 
+```
+
+  
+The `r params$species` penguins can be found on the island(s) of: `r glue_collapse(penguins |> filter(species == params$species) |> count(island) |> pluck(1), sep = ", ", last = ", and ")`.
 
 # Mass
 
@@ -81,12 +114,13 @@ penguin_theme <- function () {
       axis.text.y = element_text(size = 13)
     )
 }
-penguin_plot <- penguins |> 
-        filter(species == params$species) 
-penguin_plot |> 
+
+penguins |> 
+  drop_na() |>
         ggplot(aes(x = bill_length_mm, y = bill_depth_mm, color = species))  +
         geom_point(size = 3) +
         labs(x = "Bill length in mm", y = "Bill depth in mm") +
+        gghighlight(species == params$species)+
         penguin_theme()+
         gghighlight(species==params$species)+
         scale_color_manual(values =c("Adelie"="#FF6600",
